@@ -27,7 +27,7 @@
     {
       "parameters": {
         "operation": "send",
-        "phoneNumberId": "1205777089296645",
+        "phoneNumberId": "YOUR_WHATSAPP_PHONE_NUMBER_ID",
         "recipientPhoneNumber": "={{ '+' + $('Extract Message').first().json.senderWaId }}",
         "textBody": "={{ $json.replyText }}",
         "additionalFields": {}
@@ -117,14 +117,14 @@
         "documentId": {
           "__rl": true,
           "mode": "list",
-          "value": "1pcZQ7yAT-KY4JxcaBfNVcfR_KPtqo33AnfFamJYZulY"
+          "value": "YOUR_GOOGLE_SHEET_ID"
         },
         "sheetName": {
           "__rl": true,
           "value": 820674180,
           "mode": "list",
           "cachedResultName": "Want to go",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pcZQ7yAT-KY4JxcaBfNVcfR_KPtqo33AnfFamJYZulY/edit#gid=820674180"
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=820674180"
         },
         "options": {}
       },
@@ -147,8 +147,9 @@
       "parameters": {
         "promptType": "define",
         "text": "={{ $('Extract Message').first().json.messageText }}",
+        "needsFallback": true,
         "options": {
-          "systemMessage": "You are Jarvis, a friendly, witty personal assistant for finding places to eat and drink. You help the user decide where to go by searching their personal saved-places list (pulled from their Google Maps saves into a spreadsheet) using the searchSavedPlaces tool.\n\nThe saved list covers ALL kinds of food & drink spots - restaurants, cafes, coffee shops, bakeries, bars, dessert spots, brunch places, etc. Never assume a category (like coffee or bakery) isn't covered by the list - always check with the tool.\n\nGuidelines:\n- You MUST call the searchSavedPlaces tool before answering ANY question about a place to eat or drink, no matter the category (restaurant, cafe, coffee shop, bakery, bar, dessert, brunch, etc.) or exact wording the user uses. Never answer from memory or guesswork without calling the tool first for this request - even if you already called it earlier in this conversation for a different kind of request.\n- Call the tool only ONCE per response, even if the user asks about multiple categories at once (e.g. \"bakeries and coffee shops\"). Combine multi-category requests into a single tool call - leave the cuisine/category field blank and put the general theme in the keyword field instead (e.g. keyword: \"coffee bakery\"), or just search with the broader/first category and mention you can narrow it down further on request. Never call the tool more than once in the same turn.\n- Ground your primary recommendations in what the tool actually returns. Never claim a place is on the saved list unless the tool returned it.\n- If the tool returns nothing good, or the request doesn't fit anything saved, you may suggest other well-reviewed options from your own general knowledge - but you MUST clearly flag these as not from their saved list (e.g. \"Nothing like that in your list, but here's one based on reviews:\"). Never blend a real saved place and a guessed one without distinguishing them.\n- Keep the tone conversational, warm, and a little playful - you're Jarvis, not a corporate bot. A touch of humor is welcome, but do not overdo it.\n- Keep replies concise and WhatsApp-friendly: short, a place name in *bold*, a couple of relevant emoji, and a Google Maps link (https://www.google.com/maps/search/?api=1&query=<url-encoded address>) when recommending a specific saved place.\n- Use conversation history to understand follow-ups like \"something cheaper\" or \"closer to home\" as refinements of the previous request, not a brand new unrelated search.\n- If the message isn't about food or places (e.g. a greeting), respond naturally and warmly, and offer to help find somewhere to eat or drink.\n- Never invent ratings, prices, or addresses for saved places - only use what the tool returns."
+          "systemMessage": "You are Jarvis, a friendly, witty personal assistant for finding, saving, and managing places to eat and drink. You keep the user's personal saved-places list (pulled from their Google Maps saves into a spreadsheet) up to date and help them decide where to go, using these tools: searchSavedPlaces, findPlaceRow, placesLookup, addPlace, updatePlace, and deletePlace.\n\nThe saved list covers ALL kinds of food & drink spots - restaurants, cafes, coffee shops, bakeries, bars, dessert spots, brunch places, etc. Never assume a category (like coffee or bakery) isn't covered by the list - always check with the tool.\n\nFINDING / RECOMMENDING FROM THE SAVED LIST:\n- You MUST call the searchSavedPlaces tool before answering ANY question about a place to eat or drink, no matter the category (restaurant, cafe, coffee shop, bakery, bar, dessert, brunch, etc.) or exact wording the user uses. Never answer from memory or guesswork without calling the tool first for this request - even if you already called it earlier in this conversation for a different kind of request.\n- Never make two tool calls at the SAME time (in parallel) - that corrupts the conversation history and breaks every later message. You may make a second call only AFTER the first result has come back, and never more than two searchSavedPlaces calls in one turn.\n- For a multi-category ask (e.g. \"bakeries and coffee shops\"), put both in the cuisine field separated by a comma - e.g. cuisine: \"bakery, coffee\" - and the tool OR-matches them in a single call. Keep multi-word names whole: send \"ice cream\", never \"ice\".\n- Put whatever place the user named in the location field, whether it is a city or a whole region. \"South Bay\", \"Peninsula\", \"East Bay\", \"North Bay\", \"Santa Cruz\", \"Monterey\", \"Lake Tahoe\", \"Bay Area\", \"Silicon Valley\", \"LA\" and \"NYC\" all work, because the tool searches both the City and the Region columns.\n- READ THE WHOLE TOOL RESULT before you reply:\n  * matchCount is the TRUE number of matches; results is capped at 25 and sorted best-rated first. If truncated is true, say there are more and offer to narrow it down.\n  * If matchCount is 0 the tool returns a diagnostics block. NEVER tell the user they have nothing saved without reading it. If savedInThatLocation is above 0 they DO have saved places there, just not in this category - tell them which categories they have there instead. If savedInThatCategoryAnywhere is above 0 they have that category saved in other cities - name those cities. Only say their list has nothing for this when BOTH numbers are 0.\n  * If the result has a warning or ignoredParams, you used a parameter that does not exist - retry once using only these: location, cuisine, keyword, minRating, maxPrice, visited.\n- Ground your primary recommendations in what the tool actually returns. Never claim a place is on the saved list unless the tool returned it.\n\nDISCOVERING NEW PLACES (placesLookup):\n- Use placesLookup whenever the user asks about places beyond their saved list - e.g. \"any good ramen near Berkeley not on my list\", \"what's new around Santa Clara\" - or when searchSavedPlaces comes back empty or thin for their request.\n- Every placesLookup result MUST be clearly flagged as not yet saved (e.g. \"Nothing like that on your list, but here's one based on reviews:\"). Never blend a real saved place and a placesLookup/guessed one without clearly distinguishing them.\n- After showing discovery results, offer to add any of them to the list if the user wants.\n\nADDING PLACES (addPlace):\n- If the user asks to add a place by name only (e.g. \"add Blue Bottle Coffee to my list\"), first call placesLookup using the exact name they gave you (preserve spelling and plurals - don't paraphrase). If placesLookup returns more than one distinct location in that single call, add a row for each one - don't ask which one, just add them all. But do NOT assume a single generic search found every branch of a chain: Google's Text Search returns its best-guess matches for that query, not a guaranteed exhaustive list. If the user names specific cities/areas, or the saved list already has a pattern of multiple branches for similar chains, search once per named location. When you're not sure whether more branches exist, add what you found and say so plainly (e.g. \"Found and added the Sunnyvale location - let me know if there's another branch you want added too\") rather than implying you searched everywhere.\n- Before adding, check it isn't already on the saved list (via searchSavedPlaces/findPlaceRow) to avoid duplicates.\n- Confirm briefly after adding (e.g. \"Added *Blue Bottle Coffee* in Berkeley to your list! 📍\").\n\nUPDATING PLACES (updatePlace):\n- To mark a place visited, or to add/update its note, ALWAYS call findPlaceRow first to get the exact row_number - never guess it. If it returns more than one match, ask the user which one they mean before proceeding.\n- Only include the field(s) actually being changed (Visited? and/or Notes) - never touch a field the user didn't ask to change.\n- If the user wants to add to an existing note rather than replace it, combine the old and new text yourself (using what findPlaceRow returned) and send the full combined note to updatePlace.\n\nDELETING PLACES (deletePlace) - HARD RULE, NO EXCEPTIONS:\n- ALWAYS call findPlaceRow first to get the exact row_number - never guess it. If it returns more than one match, ask which one they mean.\n- Then tell the user exactly which place (name + city) you are about to delete, and wait for them to explicitly confirm (e.g. \"yes\", \"confirm\", \"go ahead\") in their NEXT message before calling deletePlace.\n- NEVER delete in the same turn as the request, even if the user sounds certain. No silent deletes, ever.\n\nGENERAL:\n- Keep the tone conversational, warm, and a little playful - you're Jarvis, not a corporate bot. A touch of humor is welcome, but do not overdo it.\n- Keep replies concise and WhatsApp-friendly: short, a place name in *bold*, a couple of relevant emoji, and a Google Maps link (https://www.google.com/maps/search/?api=1&query=<url-encoded address>) when recommending a specific saved place.\n- Use conversation history to understand follow-ups like \"something cheaper\" or \"closer to home\", or \"yes\"/\"confirm\" replies to a pending delete, as continuations of the previous request, not a brand new unrelated one.\n- If the message isn't about food or places (e.g. a greeting), respond naturally and warmly, and offer to help find, add, or manage a place.\n- Never invent ratings, prices, addresses, or row numbers - only use what a tool actually returns."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -158,11 +159,15 @@
         512
       ],
       "id": "0314baeb-7260-4c89-b39d-bb1149323843",
-      "name": "AI Agent"
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "modelName": "models/gemini-3.5-flash-lite",
+        "modelName": "models/gemini-3.5-flash",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
@@ -182,11 +187,11 @@
     },
     {
       "parameters": {
-        "description": "Search the user's saved places list (from Google Maps). Call this whenever the user asks about restaurants or places to eat, with whatever filters you can infer from their message and conversation history. All parameters are optional - omit ones you don't know. Returns matching rows with Place Name, Category, Rating, Reviews, Price Range, Visited status, City, Address, and Notes.",
-        "jsCode": "const rows = $('Get row(s) in sheet').all().map(item => item.json);\n\nlet params = {};\nif (typeof query === 'object' && query !== null) {\n params = query;\n} else if (typeof query === 'string' && query.trim().startsWith('{')) {\n try { params = JSON.parse(query); } catch (e) { params = {}; }\n}\n\nconst norm = (v) => (v === undefined || v === null ? '' : v.toString()).toLowerCase();\n\n// Splits a query into multiple search terms (on commas, \"and\", \"&\", \"/\", or plain spaces)\n// so a combined multi-category ask like \"bakery coffee\" or \"bakery and coffee shops\"\n// matches ANY of the terms instead of requiring the whole phrase as one substring.\nconst splitTerms = (s) => norm(s)\n .split(/,|\\band\\b|&|\\//)\n .flatMap(part => part.trim().split(/\\s+/))\n .map(t => t.trim())\n .filter(Boolean);\n\nlet results = rows;\n\nif (params.city) {\n const q = norm(params.city);\n results = results.filter(r => norm(r.City).includes(q));\n}\n\nif (params.cuisine) {\n const terms = splitTerms(params.cuisine);\n results = results.filter(r => terms.some(q =>\n norm(r.Category).includes(q) ||\n norm(r['Place Name']).includes(q) ||\n norm(r.Notes).includes(q)\n ));\n}\n\nif (params.minRating !== undefined && params.minRating !== null && params.minRating !== '') {\n const min = parseFloat(params.minRating);\n if (!isNaN(min)) {\n results = results.filter(r => parseFloat(r.Rating) >= min);\n }\n}\n\nif (params.visited !== undefined && params.visited !== null && params.visited !== '') {\n const wantVisited = params.visited === true || params.visited === 'true';\n results = results.filter(r => {\n const v = norm(r['Visited?']);\n const isVisited = v === 'true' || v === 'yes' || v === 'y' || v === 'visited';\n return isVisited === wantVisited;\n });\n}\n\nif (params.keyword) {\n const terms = splitTerms(params.keyword);\n results = results.filter(r => terms.some(q =>\n norm(r['Place Name']).includes(q) ||\n norm(r.Category).includes(q) ||\n norm(r.Notes).includes(q) ||\n norm(r.City).includes(q) ||\n norm(r.Address).includes(q)\n ));\n}\n\nconst output = results.slice(0, 15).map(r => ({\n name: r['Place Name'],\n category: r.Category,\n rating: r.Rating,\n reviews: r.Reviews,\n priceRange: r['Price Range'],\n visited: r['Visited?'],\n city: r.City,\n address: r.Address,\n notes: r.Notes\n}));\n\nreturn JSON.stringify({ count: output.length, totalSaved: rows.length, results: output });",
+        "description": "Search the user's personal saved-places list (their Google Maps saves, kept in a spreadsheet). Call this BEFORE answering any question about a place to eat or drink, whatever the category. All parameters are optional - omit the ones you don't know. The location parameter matches BOTH the City and the Region columns, so regional asks like \"South Bay\", \"East Bay\", \"Peninsula\" or \"Bay Area\" work. Category terms are synonym-expanded (pub also finds bars, taprooms, breweries, lounges) and are matched against the Category, Type, Cuisine and Place Name columns. Returns matchCount (total matches, before truncation), truncated, and up to 25 results sorted best-rated first. When nothing matches it returns a diagnostics block showing how many places the user has saved in that location and in that category elsewhere - ALWAYS read it before telling the user they have nothing saved.",
+        "jsCode": "// searchSavedPlaces - deterministic search over the user's saved places sheet.\nconst rows = $('Get row(s) in sheet').all().map(item => item.json);\n\nlet params = {};\nif (typeof query === 'object' && query !== null) {\n  params = query;\n} else if (typeof query === 'string' && query.trim().startsWith('{')) {\n  try { params = JSON.parse(query); } catch (e) { params = {}; }\n}\n\nconst norm = (v) => (v === undefined || v === null ? '' : v.toString()).toLowerCase().trim();\nconst esc = (s) => s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&');\nconst isSet = (v) => v !== undefined && v !== null && v !== '';\nconst wordHit = (hay, term) => new RegExp('\\\\b' + esc(term) + '\\\\b').test(hay);\n\nconst KNOWN = ['location', 'city', 'region', 'area', 'cuisine', 'category', 'type', 'keyword', 'minRating', 'maxPrice', 'visited'];\nconst ignoredParams = Object.keys(params).filter(k => KNOWN.indexOf(k) === -1 && isSet(params[k]));\n\nconst locationInput = params.location || params.city || params.region || params.area || '';\nconst categoryInput = params.cuisine || params.category || params.type || '';\nconst keywordInput = params.keyword || '';\n\n// Split ONLY on real separators - never on bare spaces, so \"ice cream\" stays one phrase.\nconst splitTerms = (s) => norm(s)\n  .split(/\\s*(?:,|\\/|\\||\\+|&|\\bor\\b|\\band\\b)\\s*/)\n  .map(t => t.trim())\n  .filter(Boolean);\n\n// One-directional synonym map: a query term expands to these match words.\nconst CATEGORY_SYNONYMS = {\n  'pub': ['pub', 'bar', 'tavern', 'saloon', 'brewery', 'brewpub', 'taproom', 'beer', 'lounge', 'cocktail', 'speakeasy', 'rooftop'],\n  'bar': ['bar', 'pub', 'tavern', 'saloon', 'lounge', 'cocktail', 'speakeasy', 'taproom', 'brewery', 'brewpub', 'rooftop'],\n  'tavern': ['tavern', 'pub', 'bar', 'saloon'],\n  'brewery': ['brewery', 'brewpub', 'taproom', 'beer', 'pub'],\n  'beer': ['beer', 'brewery', 'brewpub', 'taproom', 'pub', 'bar'],\n  'cocktail': ['cocktail', 'bar', 'speakeasy', 'lounge'],\n  'drinks': ['bar', 'pub', 'cocktail', 'lounge', 'brewery'],\n  'nightlife': ['bar', 'pub', 'cocktail', 'lounge', 'speakeasy'],\n  'coffee': ['coffee', 'cafe', 'espresso', 'roaster'],\n  'cafe': ['cafe', 'coffee', 'espresso', 'roaster'],\n  'tea': ['tea', 'matcha', 'boba', 'bubble tea'],\n  'boba': ['boba', 'bubble tea', 'tea'],\n  'ice cream': ['ice cream', 'gelato', 'creamery', 'frozen yogurt', 'froyo', 'soft serve'],\n  'gelato': ['gelato', 'ice cream', 'creamery'],\n  'dessert': ['dessert', 'ice cream', 'gelato', 'creamery', 'bakery', 'patisserie', 'pastry', 'cake', 'donut', 'doughnut', 'sweets', 'candy', 'chocolate'],\n  'sweets': ['sweets', 'dessert', 'candy', 'chocolate', 'bakery'],\n  'bakery': ['bakery', 'patisserie', 'pastry', 'bread', 'croissant', 'cake'],\n  'pastry': ['pastry', 'patisserie', 'bakery', 'croissant'],\n  'donut': ['donut', 'doughnut'],\n  'brunch': ['brunch', 'breakfast', 'diner', 'pancake', 'waffle', 'bagel'],\n  'breakfast': ['breakfast', 'brunch', 'diner', 'pancake', 'waffle', 'bagel'],\n  'pizza': ['pizza', 'pizzeria'],\n  'burger': ['burger', 'burgers', 'cheeseburger', 'smash burger'],\n  'ramen': ['ramen', 'noodle', 'udon', 'soba'],\n  'noodles': ['noodle', 'ramen', 'udon', 'soba', 'pho'],\n  'indian': ['indian', 'south indian', 'north indian', 'biryani', 'curry'],\n  'mexican': ['mexican', 'taco', 'taqueria', 'burrito'],\n  'chinese': ['chinese', 'dim sum', 'sichuan', 'szechuan', 'cantonese'],\n  'japanese': ['japanese', 'sushi', 'izakaya', 'ramen'],\n  'italian': ['italian', 'pasta', 'trattoria', 'pizzeria']\n};\n\nconst LOCATION_ALIASES = {\n  'bay area': ['san francisco', 'south bay', 'peninsula', 'east bay', 'north bay'],\n  'sf': ['san francisco'],\n  'the city': ['san francisco'],\n  'south bay': ['south bay', 'peninsula'],\n  'silicon valley': ['south bay', 'peninsula'],\n  'peninsula': ['peninsula', 'south bay'],\n  'tahoe': ['lake tahoe'],\n  'la': ['los angeles'],\n  'socal': ['los angeles'],\n  'nyc': ['new york'],\n  'monterey': ['monterey', 'big sur'],\n  'wine country': ['north bay', 'napa', 'sonoma']\n};\n\nconst expandCategory = (term) => {\n  if (term.length < 3) return [term];\n  if (CATEGORY_SYNONYMS[term]) return CATEGORY_SYNONYMS[term];\n  const key = Object.keys(CATEGORY_SYNONYMS).find(k => wordHit(term, k));\n  if (key) {\n    const out = [term];\n    CATEGORY_SYNONYMS[key].forEach(w => { if (out.indexOf(w) === -1) out.push(w); });\n    return out;\n  }\n  return [term];\n};\nconst expandLocation = (term) => {\n  const out = [term];\n  const al = LOCATION_ALIASES[term];\n  if (al) al.forEach(w => { if (out.indexOf(w) === -1) out.push(w); });\n  return out;\n};\n\nconst locTerms = splitTerms(locationInput).reduce((a, t) => a.concat(expandLocation(t)), []);\nconst catTerms = splitTerms(categoryInput).reduce((a, t) => a.concat(expandCategory(t)), []);\nconst kwTerms = splitTerms(keywordInput);\n\nconst locHay = (r) => norm(r.City) + ' | ' + norm(r.Region);\nconst catHay = (r) => norm(r.Category) + ' | ' + norm(r.Type) + ' | ' + norm(r.Cuisine);\nconst nameHay = (r) => catHay(r) + ' | ' + norm(r['Place Name']);\nconst kwHay = (r) => nameHay(r) + ' | ' + norm(r.Notes) + ' | ' + locHay(r) + ' | ' + norm(r.Address);\n\nconst fLoc = (r) => !locTerms.length || locTerms.some(t => locHay(r).indexOf(t) !== -1);\nconst fCatStrict = (r) => !catTerms.length || catTerms.some(t => wordHit(catHay(r), t));\nconst fCatLoose = (r) => !catTerms.length || catTerms.some(t => catHay(r).indexOf(t) !== -1);\nconst fCatName = (r) => !catTerms.length || catTerms.some(t => nameHay(r).indexOf(t) !== -1);\nconst fKw = (r) => !kwTerms.length || kwTerms.some(t => kwHay(r).indexOf(t) !== -1);\n\nconst minRating = isSet(params.minRating) ? parseFloat(params.minRating) : NaN;\nconst fRating = (r) => isNaN(minRating) || minRating <= 0 || parseFloat(r.Rating) >= minRating;\n\nconst budgetCap = (() => {\n  const t = norm(params.maxPrice);\n  if (!t) return null;\n  const nums = t.match(/\\d+/g);\n  if (nums) return Math.max.apply(null, nums.map(Number));\n  if (/cheap|budget|inexpensive|affordable/.test(t)) return 20;\n  if (/moderate|mid/.test(t)) return 40;\n  if (/expensive|upscale|fancy|splurge|high end/.test(t)) return 100000;\n  return null;\n})();\nconst rowPriceMax = (r) => { const n = String(r['Price Range'] || '').match(/\\d+/g); return n ? Math.max.apply(null, n.map(Number)) : null; };\nconst fPrice = (r) => budgetCap === null || rowPriceMax(r) === null || rowPriceMax(r) <= budgetCap;\n\nconst fVisited = (r) => {\n  if (!isSet(params.visited)) return true;\n  const want = params.visited === true || norm(params.visited) === 'true' || norm(params.visited) === 'yes';\n  // Tolerant of stray formatting written by earlier updates, e.g. [\"Yes\"]\n  const v = norm(r['Visited?']).replace(/[^a-z]/g, '');\n  const is = v === 'true' || v === 'yes' || v === 'y' || v === 'visited' || v === 'done';\n  return is === want;\n};\n\nconst apply = (catFn) => rows.filter(r => fLoc(r) && catFn(r) && fKw(r) && fRating(r) && fPrice(r) && fVisited(r));\n\nlet matched = apply(fCatStrict);\nlet matchMode = 'exact';\nif (!matched.length && catTerms.length) { matched = apply(fCatLoose); matchMode = 'loose'; }\nif (!matched.length && catTerms.length) { matched = apply(fCatName); matchMode = 'nameMatch'; }\n\nmatched.sort((a, b) =>\n  ((parseFloat(b.Rating) || 0) - (parseFloat(a.Rating) || 0)) ||\n  ((parseInt(b.Reviews, 10) || 0) - (parseInt(a.Reviews, 10) || 0))\n);\n\nconst LIMIT = 25;\nconst output = matched.slice(0, LIMIT).map(r => ({\n  name: r['Place Name'],\n  category: r.Category || r.Type,\n  rating: r.Rating,\n  reviews: r.Reviews,\n  priceRange: r['Price Range'],\n  visited: r['Visited?'],\n  city: r.City,\n  region: r.Region,\n  address: r.Address,\n  notes: r.Notes\n}));\n\nconst result = {\n  matchCount: matched.length,\n  returned: output.length,\n  truncated: matched.length > output.length,\n  totalSaved: rows.length,\n  matchMode: matchMode,\n  filtersApplied: {\n    location: locTerms,\n    category: catTerms,\n    keyword: kwTerms,\n    minRating: isNaN(minRating) ? null : minRating,\n    maxPriceCap: budgetCap,\n    visited: isSet(params.visited) ? params.visited : null\n  },\n  results: output\n};\n\nif (ignoredParams.length) {\n  result.ignoredParams = ignoredParams;\n  result.warning = 'Unsupported parameters were ignored: ' + ignoredParams.join(', ') + '. Supported: location, cuisine, keyword, minRating, maxPrice, visited.';\n}\n\nif (!matched.length) {\n  const inLoc = rows.filter(r => fLoc(r));\n  const inCat = rows.filter(r => fCatName(r));\n  const catCount = {};\n  inLoc.forEach(r => { const c = r.Category || r.Type || 'Unknown'; catCount[c] = (catCount[c] || 0) + 1; });\n  const topCats = Object.keys(catCount).sort((a, b) => catCount[b] - catCount[a]).slice(0, 12).map(c => c + ' (' + catCount[c] + ')');\n  const regions = {};\n  rows.forEach(r => { const g = r.Region || 'Unknown'; regions[g] = (regions[g] || 0) + 1; });\n  const citiesForCat = Array.from(new Set(inCat.map(r => r.City).filter(Boolean))).slice(0, 12);\n\n  result.diagnostics = {\n    savedInThatLocation: locTerms.length ? inLoc.length : null,\n    savedInThatCategoryAnywhere: catTerms.length ? inCat.length : null,\n    categoriesSavedInThatLocation: locTerms.length ? topCats : null,\n    citiesWhereThatCategoryIsSaved: catTerms.length ? citiesForCat : null,\n    regionsAvailable: regions\n  };\n  result.hint = 'Nothing matched ALL filters. Read diagnostics before telling the user they have nothing saved. If savedInThatLocation > 0 they DO have places there, just not this category - say which categories they do have there. If savedInThatCategoryAnywhere > 0 they have this category saved elsewhere - name those cities. Only say the list has nothing when both counts are 0.';\n}\n\nreturn JSON.stringify(result);",
         "specifyInputSchema": true,
         "schemaType": "manual",
-        "inputSchema": "{\n \"type\": \"object\",\n \"properties\": {\n \"city\": {\n \"type\": \"string\",\n \"description\": \"City or area to filter by, e.g. Santa Clara\"\n },\n \"cuisine\": {\n \"type\": \"string\",\n \"description\": \"Cuisine or category to filter by, e.g. Indian, pizza, cafe\"\n },\n \"minRating\": {\n \"type\": \"number\",\n \"description\": \"Minimum star rating, e.g. 4\"\n },\n \"maxPrice\": {\n \"type\": \"string\",\n \"description\": \"Maximum budget hint as text, e.g. cheap, $20-60. Leave blank unless user mentions budget\"\n },\n \"visited\": {\n \"type\": \"boolean\",\n \"description\": \"true to only show places already visited, false to only show places not yet visited, omit to include both\"\n },\n \"keyword\": {\n \"type\": \"string\",\n \"description\": \"Freeform keyword to search across place name, category, and notes, e.g. rooftop, date night, vegetarian\"\n }\n },\n \"required\": []\n}"
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"location\": {\n      \"type\": \"string\",\n      \"description\": \"City, area or region to filter by. Accepts a city (San Francisco, Santa Clara, Berkeley) OR a region - both the City and Region columns are searched. Valid regions: San Francisco, South Bay / Peninsula, East Bay, North Bay, Santa Cruz, Monterey Bay & Big Sur, Lake Tahoe, Los Angeles, New York City, Central Valley / Northern CA. Pass the user's own wording (South Bay, Bay Area, Silicon Valley, Peninsula, Tahoe, LA, NYC all work). Omit if the user did not mention a place.\"\n    },\n    \"cuisine\": {\n      \"type\": \"string\",\n      \"description\": \"Cuisine, category or venue type in the user's own words, e.g. Indian, pizza, cafe, pub, ice cream, bakery. Close synonyms are expanded automatically (pub also finds bars, taprooms, breweries and lounges; coffee also finds cafes). Keep multi-word phrases intact - send 'ice cream', not 'ice'. Omit if the user did not name a kind of place.\"\n    },\n    \"keyword\": {\n      \"type\": \"string\",\n      \"description\": \"Free-text term matched against place name, notes, address, city and category. Use for a specific place name or an unusual descriptor. Omit for ordinary category searches.\"\n    },\n    \"minRating\": {\n      \"type\": \"number\",\n      \"description\": \"Minimum star rating, e.g. 4. Omit unless the user asked for highly-rated or best places.\"\n    },\n    \"maxPrice\": {\n      \"type\": \"string\",\n      \"description\": \"Budget cap, e.g. cheap, under $30, $20-30. Omit unless the user mentioned budget.\"\n    },\n    \"visited\": {\n      \"type\": \"boolean\",\n      \"description\": \"true = only places already visited, false = only not-yet-visited. Omit unless the user asked about visited status.\"\n    }\n  }\n}"
       },
       "type": "@n8n/n8n-nodes-langchain.toolCode",
       "typeVersion": 1.3,
@@ -199,7 +204,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nlet replyText = (item.output || item.text || '').toString().trim();\n\nconst MAX_LEN = 1500;\nif (replyText.length > MAX_LEN) {\n replyText = replyText.slice(0, MAX_LEN - 40).trim() + '...\\n\\n(trimmed for length - ask me for more!)';\n}\n\nif (!replyText) {\n replyText = \"Hmm, I'm drawing a blank on that one - mind rephrasing?\";\n}\n\nreturn [{ json: { replyText } }];"
+        "jsCode": "const item = $input.first().json;\n\n// If the AI Agent failed (On Error: continue using regular output) it passes the\n// error through instead of an answer - reply with a friendly note, never silence.\nif (item.error && !item.output && !item.text) {\n  const raw = typeof item.error === 'string' ? item.error : (item.error.message || item.error.description || '');\n  const busy = /503|high demand|unavailable|overload|rate limit|429|timeout/i.test(raw);\n  const replyText = busy\n    ? \"Ugh - my brain's servers are slammed right now. Give me a minute and ask me again?\"\n    : \"Something went wrong on my end just now. Mind trying that again?\";\n  return [{ json: { replyText, failed: true, reason: String(raw).slice(0, 300) } }];\n}\n\nlet replyText = (item.output || item.text || '').toString().trim();\n\nconst MAX_LEN = 1500;\nif (replyText.length > MAX_LEN) {\n  replyText = replyText.slice(0, MAX_LEN - 40).trim() + '...\\n\\n(trimmed for length - ask me for more!)';\n}\n\nif (!replyText) {\n  replyText = \"Hmm, I'm drawing a blank on that one - mind rephrasing?\";\n}\n\nreturn [{ json: { replyText } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -228,7 +233,7 @@
       "parameters": {
         "sessionIdType": "customKey",
         "sessionKey": "={{ $('Extract Message').first().json.senderWaId }}-v2",
-        "contextWindowLength": 3
+        "contextWindowLength": 8
       },
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
@@ -238,6 +243,505 @@
       ],
       "id": "d7b13419-8948-408d-96d7-93df083a4502",
       "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Look up real-world places using Google Places Text Search. Use when the user wants to add a new place not on the saved list, or asks a general discovery question about places not yet saved. Input: a free-text query - use the exact place name as given (preserve spelling and plurals, don't paraphrase or \"correct\" it), optionally with a city/neighborhood appended to target a specific branch (e.g. \"Pints of Joy Fremont\"). Returns matching real-world locations with name, address, city, rating, review count, price level, and place id. IMPORTANT: a single call does NOT reliably return every branch of a chain - Google's Text Search returns its best-guess matches for that exact query, not an exhaustive list of every location. If the user's request implies multiple locations, or you have reason to think more branches might exist, run additional searches with different city names rather than assuming one call found everything. When reporting results back to the user, only claim to have found/added what actually came back - don't imply an exhaustive search happened.",
+        "method": "POST",
+        "url": "https://places.googleapis.com/v1/places:searchText",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Goog-FieldMask",
+              "value": "places.id,places.displayName,places.formattedAddress,places.addressComponents,places.rating,places.userRatingCount,places.location,places.priceLevel,places.types"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "textQuery",
+              "value": "={{ $fromAI('textQuery', 'The exact place name to search for, copied verbatim from the user (preserve spelling and plurals exactly, do not fix or shorten it) - optionally with a city or neighborhood appended to target one specific branch, e.g. \"Blue Bottle Coffee\" or \"ramen near Berkeley CA\"', 'string') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        96,
+        96
+      ],
+      "id": "ea961ee4-3aed-418d-b34a-e201f1ae11be",
+      "name": "placesLookup",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JyPRtrob8BXGlUFE",
+          "name": "Google Places API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Find a row (or rows) in the saved places sheet by name. Always call this before updatePlace or deletePlace to get the exact row to target - never guess a row number. Input: placeName (required) and optionally city to narrow down if multiple places share a similar name. Returns matchCount and a list of matches, each with row_number, #, name, category, city, address, visited status, and notes. If matchCount is 0, no match was found - say so, do not invent a row. If matchCount is more than 1, list the matches (name + city) and ask the user which one they mean before calling updatePlace or deletePlace.",
+        "jsCode": "const rows = $('Get row(s) in sheet').all().map(item => item.json);\n\nlet params = {};\nif (typeof query === 'object' && query !== null) {\n    params = query;\n} else if (typeof query === 'string' && query.trim().startsWith('{')) {\n    try { params = JSON.parse(query); } catch (e) { params = {}; }\n} else if (typeof query === 'string') {\n    params = { placeName: query };\n}\n\nconst norm = (v) => (v === undefined || v === null ? '' : v.toString()).toLowerCase().trim();\n\nconst nameQ = norm(params.placeName);\nconst cityQ = norm(params.city);\n\nlet matches = rows.filter(r => {\n    const name = norm(r['Place Name']);\n    if (!nameQ) return false;\n    const nameMatches = name.includes(nameQ) || nameQ.includes(name);\n    if (!nameMatches) return false;\n    if (cityQ) {\n          return norm(r.City).includes(cityQ);\n    }\n    return true;\n});\n\nconst output = matches.map(r => ({\n    row_number: r.row_number,\n    '#': r['#'],\n    name: r['Place Name'],\n    category: r.Category,\n    city: r.City,\n    address: r.Address,\n    visited: r['Visited?'],\n    notes: r.Notes\n}));\n\nreturn JSON.stringify({ matchCount: output.length, matches: output });",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n    \"type\": \"object\",\n    \"properties\": {\n          \"placeName\": {\n                  \"type\": \"string\",\n                  \"description\": \"The name (or partial name) of the place to find, e.g. 'Pint of Joy' or 'Cobi's'\"\n          },\n          \"city\": {\n                  \"type\": \"string\",\n                  \"description\": \"Optional city to narrow the match if multiple places share a similar name, e.g. 'Berkeley, CA'\"\n          }\n    },\n    \"required\": [\"placeName\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        272
+      ],
+      "id": "8b843c04-2d1e-4bd7-b92d-0ad41823f4c5",
+      "name": "findPlaceRow"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Add ONE new place as a row to the saved places sheet. Call this once per distinct real-world location that placesLookup actually returned as a separate result (e.g. once per branch of a chain that came back separately) - never assume there is only one branch, and never claim to have added every location of a chain unless each one actually came back from placesLookup. Before calling this, always call findPlaceRow with the place's name to make sure it is not already saved - if it is, do not add it again. Input fields: name (required, the exact place name - use placesLookup's displayName verbatim, preserving exact spelling and plurals, never paraphrase or guess), category (required, e.g. Cafe, Bakery, American, Ice Cream), city (required, e.g. Berkeley, CA), address (required, full formatted address), rating (optional, Google rating out of 5), reviews (optional, Google review count as a number), price_range (optional, formatted like existing rows e.g. \"$10-20\", \"$20-30\" - convert from Google's priceLevel if available, else leave blank, never guess), cuisine (optional, a specific cuisine label e.g. French, Mexican, Japanese, Italian - infer from the place's name/category), type (optional, a general type matching the sheet's existing convention e.g. Restaurant, Bakery, Coffee shop, Bar, Ice Cream Shop), region (optional, the Bay Area sub-region matching existing rows, e.g. San Francisco, East Bay, South Bay / Peninsula, North Bay, Monterey Bay & Big Sur, Lake Tahoe, Central Valley / Northern CA, Los Angeles - infer from city), notes (optional, short note e.g. why it was added or what it's known for).",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Google_Maps_Want_To_Go",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 820674180,
+          "mode": "list",
+          "cachedResultName": "Want to go",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=820674180"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "#": "={{ Math.max(0, ...$('Get row(s) in sheet').all().map(item => Number(item.json['#']) || 0)) + 1 }}",
+            "Place Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Place_Name', `The place's exact name, verbatim as returned by placesLookup's displayName (or as the user wrote it if not yet looked up) - preserve exact spelling, capitalization, and plurals. Do not paraphrase or shorten it.`, 'string') }}",
+            "Category": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Category', `Category or cuisine type, e.g. Cafe, Bakery, American, Ice Cream`, 'string') }}",
+            "Rating": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Rating', `Google rating out of 5 if known, e.g. 4.6. Leave blank if unknown.`, 'string') }}",
+            "Notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Notes', `Optional short note, e.g. why it was added or what it's known for. Leave blank if nothing notable.`, 'string') }}",
+            "City": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('City', `City and state, e.g. Berkeley, CA`, 'string') }}",
+            "Address": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Address', `Full formatted street address`, 'string') }}",
+            "Cuisine": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Cuisine', `A specific cuisine label, e.g. French, Mexican, Japanese, Italian, Thai, American. Infer from the place's name and category. Leave blank only if genuinely unclear (e.g. a generic coffee shop with no specific cuisine).`, 'string') }}",
+            "Type": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Type', `A general type matching the sheet's existing convention, e.g. Restaurant, Bakery, Coffee shop, Bar, Ice Cream Shop, Brewery, Pub, Lounge bar, Cocktail bar. Match the style of similar existing entries rather than inventing new categories.`, 'string') }}",
+            "Region": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Region', `The Bay Area/regional grouping matching existing rows, based on city. Use one of: San Francisco, East Bay, South Bay / Peninsula, North Bay, Monterey Bay & Big Sur, Lake Tahoe, Central Valley / Northern CA, Los Angeles, Other / Road-trip stop. Pick the closest match; use \"Other / Road-trip stop\" only if nothing else fits.`, 'string') }}",
+            "Reviews": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Reviews', `Google review count as a whole number if known, e.g. 2919. Leave blank if unknown - never guess or estimate.`, 'string') }}",
+            "Price Range": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Price_Range', `Price range formatted like existing rows, e.g. \"$10-20\", \"$20-30\", \"$30-50\". Convert from Google's priceLevel if available (PRICE_LEVEL_INEXPENSIVE ~ $10-20, PRICE_LEVEL_MODERATE ~ $20-30, PRICE_LEVEL_EXPENSIVE ~ $30-50, PRICE_LEVEL_VERY_EXPENSIVE ~ $50+). Leave blank if priceLevel wasn't returned - never guess.`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "#",
+              "displayName": "#",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Place Name",
+              "displayName": "Place Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reviews",
+              "displayName": "Reviews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Price Range",
+              "displayName": "Price Range",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Visited?",
+              "displayName": "Visited?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Cuisine",
+              "displayName": "Cuisine",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Region",
+              "displayName": "Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        400
+      ],
+      "id": "e94b6bdc-4f85-48c4-889f-c262b8909d3e",
+      "name": "addPlace",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MbPytd1gCv6u7tjh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Update an existing saved place: mark it visited, or update/add its note. Always call findPlaceRow first to get the exact row_number to target - never guess it, and if findPlaceRow returns more than one match, ask the user which place they mean before calling this. Only include the fields the user actually wants changed (visited status and/or notes) - never include a field you're not intentionally updating.",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Google_Maps_Want_To_Go",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 820674180,
+          "mode": "list",
+          "cachedResultName": "Want to go",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=820674180"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('row_number__using_to_match_', `The exact row_number of the place to update. You must get this from calling findPlaceRow first - never guess it.`, 'number') }}",
+            "Visited?": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Visited_', `Set to \"Yes\" only when the user says they've been to / visited this place. Only include this field if the user is updating visited status - otherwise leave it out.`, 'string') }}",
+            "Notes": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Notes', `The new note text to replace the existing note with. Only include this field if the user is updating/adding a note - otherwise leave it out. If they want to add to an existing note rather than replace it, combine the old and new text yourself using what findPlaceRow returned.`, 'string') }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "#",
+              "displayName": "#",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Place Name",
+              "displayName": "Place Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Rating",
+              "displayName": "Rating",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Reviews",
+              "displayName": "Reviews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Price Range",
+              "displayName": "Price Range",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Visited?",
+              "displayName": "Visited?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notes",
+              "displayName": "Notes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "City",
+              "displayName": "City",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Address",
+              "displayName": "Address",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Cuisine",
+              "displayName": "Cuisine",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Type",
+              "displayName": "Type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Region",
+              "displayName": "Region",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1040,
+        816
+      ],
+      "id": "d8125422-37d2-42df-b371-ee4b22aa4187",
+      "name": "updatePlace",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MbPytd1gCv6u7tjh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Permanently delete a saved place from the list. HARD RULE: never call this without first confirming with the user in a separate message. Always call findPlaceRow first to get the exact row_number - never guess it, and if it returns more than one match, ask which one they mean. Then tell the user exactly which place (name + city) you are about to delete and wait for them to explicitly confirm (e.g. \"yes\", \"confirm\", \"go ahead\") in their NEXT message before calling this tool. Never delete on the same turn as the request, even if the user sounds certain.",
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Google_Maps_Want_To_Go",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 820674180,
+          "mode": "list",
+          "cachedResultName": "Want to go",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID/edit#gid=820674180"
+        },
+        "startIndex": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start_Row_Number', `The exact row_number of the place to delete, from findPlaceRow. This is the same as the sheet row number - do not subtract 1, do not guess it.`, 'number') }}"
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1136,
+        912
+      ],
+      "id": "0d0fc538-f186-47b1-a8c5-770e2d5400b1",
+      "name": "deletePlace",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MbPytd1gCv6u7tjh",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        736,
+        659.2557319223987
+      ],
+      "id": "e132eb6c-5061-4884-9ac3-f63f26a8288b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "v2FSVMM0yLB2Xlky",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     }
   ],
   "connections": {
@@ -360,17 +864,79 @@
           }
         ]
       ]
+    },
+    "findPlaceRow": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "addPlace": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "updatePlace": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "deletePlace": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "placesLookup": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
     }
   },
-  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "1bbdaa3f-1e93-4524-bfe0-5ee5cb6e633f",
-  "meta": {
-    "templateCredsSetupCompleted": true
-  },
-  "id": "bNbeiIVM4QMlDvdp",
-  "tags": []
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 1
 }

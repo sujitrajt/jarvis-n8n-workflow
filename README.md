@@ -1,46 +1,71 @@
-# Jarvis — WhatsApp Assistant (n8n workflow)
+# Jarvis: WhatsApp AI Assistant (n8n)
 
-Version-controlled backup of the **Whatsapp-Automation** n8n workflow (aka "Jarvis"), a personal WhatsApp bot that answers questions against a Google Sheet of saved places ("Google_Maps_Want_To_Go").
+Jarvis is a personal WhatsApp assistant for a saved-places list. You message it in plain English ("any pubs in San Francisco?", "add Blue Bottle Coffee in Berkeley", "mark Cobi's as visited") and it searches, adds, updates, or deletes entries in a Google Sheet of roughly 200 places imported from Google Maps saves.
 
-- n8n instance: `sujitrajt.app.n8n.cloud`
-- Workflow ID: `bNbeiIVM4QMlDvdp`
-- Exported: 2026-08-31
+It is built as an n8n workflow around a Gemini tool-calling agent with 6 custom tools. Search is deterministic JavaScript, so the model never invents places, ratings, or addresses.
 
-## Architecture (current, read-only search)
+## Architecture
 
 ```
 WhatsApp Trigger
-  -> If (is this a real text message, not a delivery-status callback?)
-    -> Extract Message
-      -> Get row(s) in sheet  ─┐
-      -> Sync Sheet & Continue ┴─> AI Agent (Gemini + Simple Memory + searchSavedPlaces tool)
-        -> Prepare Reply
-          -> Send message
+  -> If (text message, not a delivery-status callback)
+    -> Extract Message (text + sender ID)
+      -> Get row(s) in sheet ─┐
+      -> Sync Sheet & Continue┴─> AI Agent
+                                    model:    Gemini 3.5 Flash (primary)
+                                              Gemini 3.5 Flash-Lite (fallback)
+                                    memory:   Simple Memory, per sender, 8 messages
+                                    tools:    searchSavedPlaces, findPlaceRow, placesLookup,
+                                              addPlace, updatePlace, deletePlace
+                                  -> Prepare Reply (format, trim, friendly error text)
+                                    -> Send message (WhatsApp)
 ```
 
-- **AI Agent**: Google Gemini (`gemini-3.5-flash-lite`), per-sender conversation memory via `Simple Memory`, and a `searchSavedPlaces` code tool that filters the already-fetched sheet rows by city/cuisine/rating/price/visited/keyword.
-- **Get row(s) in sheet**: reads the full "Want to go" tab of the Google Sheet on every message.
-- Read-only today — no add/update/delete capability yet.
+## Tools
 
-## Planned: CRUD extension
+| Tool | Type | What it does |
+| --- | --- | --- |
+| `searchSavedPlaces` | JavaScript code tool | Filters the saved list by location, cuisine, keyword, rating, price, and visited status. Returns the true match count, up to 25 results sorted by rating, and diagnostics when nothing matches. |
+| `findPlaceRow` | JavaScript code tool | Finds the exact sheet row for a place by name (optionally city) before any update or delete. |
+| `placesLookup` | HTTP request tool | Google Places API (New) Text Search, for adding a place by name or discovering places not on the list. |
+| `addPlace` | Google Sheets tool | Appends one row per real-world location returned by `placesLookup`, after a duplicate check. |
+| `updatePlace` | Google Sheets tool | Updates only `Visited?` and `Notes`; every other column is unmapped so it cannot be overwritten. |
+| `deletePlace` | Google Sheets tool | Deletes a single row, only after the user confirms in a separate message. |
 
-Adding full Create/Read/Update/Delete so Jarvis can manage the sheet directly from WhatsApp:
+## Design decisions
 
-1. **Places lookup** tool (Google Places API "Text Search", `X-Goog-Api-Key` header auth credential already created in n8n as "Google Places API") — also usable for general discovery of places not yet on the list.
-2. **addPlace** — looks up a place by name, and if multiple real-world branches are found, adds *all* of them (not asking which one), deduping against existing rows.
-3. **updatePlace** — fuzzy name match against the sheet; asks for clarification only if genuinely ambiguous.
-4. **deletePlace** — always confirms the exact row (name + city) with the user before deleting; never deletes silently.
-5. System prompt update covering the new tools plus "everything for this trip" region-based filtering (for future trip-planning use, e.g. "show me everything marked for LA").
+**Deterministic search, not model memory.** The agent must call `searchSavedPlaces` before answering any place question, and may only recommend saved places the tool actually returned. Suggestions from `placesLookup` are always labeled as not yet saved.
 
-Future: additional Google Maps saved lists (Beach, Parks, tourist attractions, etc.) will continue to be imported into the sheet via manual browser session, not automated through Jarvis over WhatsApp.
+**Search that understands how people ask.**
+- Location matches both the City and Region columns, with aliases such as "Bay Area", "South Bay", "SF", "Tahoe", and "LA".
+- Category terms expand through a one-way synonym map ("pub" also finds bars, taprooms, and breweries) and match Category, Type, and Cuisine, but not place names, which caused false positives.
+- Multi-word terms stay whole, so "ice cream" no longer matches "Rice" or "Juice".
+- Matching runs in three stages (exact word, substring, place name) and stops at the first stage with results.
+- When nothing matches, the tool reports how many places are saved in that location and in that category elsewhere, so the agent never wrongly says the list is empty.
 
-## Notes on this export
+**Safe writes.**
+- Updates and deletes always look up the exact row with `findPlaceRow` first and ask when the name is ambiguous.
+- Deletes require explicit confirmation in the user's next message, never in the same turn, and remove at most one row per call.
+- `updatePlace` can only change two columns.
 
-- `whatsapp-automation.json` is a straight export of the workflow definition (nodes, connections, settings) via n8n's `/rest/workflows/:id` API, reshaped to match n8n's standard downloadable export format.
-- **Pinned test data was stripped.** The live workflow had ~40KB of pinned execution output (sample WhatsApp payloads and all ~199 pinned sheet rows) attached for local testing in the editor; that's cached debug data, not part of the workflow logic, and it included a couple of real phone numbers — so it's excluded here rather than committed.
-- **No credential secrets are included.** Nodes reference credentials by id/name only (e.g. `"Google Sheets account"`, `"WhatsApp account 2"`) — n8n never exports the actual stored secret values. Treat this repo as containing configuration, not credentials.
-- n8n Cloud's native git "Source Control" sync is gated to Business/Enterprise tiers; this repo is a manual export instead, meant to be re-exported and committed periodically (especially before/after the CRUD build) to track history.
+**Resilience to model outages.** Gemini returned frequent 503 "high demand" errors, so the agent has a fallback model, retries up to 5 times with a 5-second wait, and continues on error. `Prepare Reply` turns a failure into a friendly "try again in a minute" message instead of leaving the user with no reply.
 
-## Re-exporting after changes
+## Bugs found and fixed
 
-In the n8n editor: workflow menu (⋮, top right) → **Download**, or re-fetch `GET /rest/workflows/bNbeiIVM4QMlDvdp` while logged in. Overwrite `whatsapp-automation.json` and commit.
+- **Empty results for common questions.** Searching "pubs in San Francisco" returned nothing because search only checked the City column and matched words literally. The rewrite above took that query from 0 to 7 correct results.
+- **Gemini 400 errors after multi-category questions.** Two parallel tool calls broke Gemini's function-call ordering when the conversation was replayed from memory. The agent now makes at most two sequential calls, and a single call handles comma-separated categories.
+- **Places lookup returning nothing.** n8n did not evaluate `$fromAI()` inside a raw JSON request body, so Google received the literal template string. Moving the query to a body field fixed it.
+- **Fields left blank on new rows.** Several `addPlace` columns were never set to be filled by the model; they are now model-fillable with formatting rules matching existing rows.
+
+## Setup
+
+1. In n8n, import `whatsapp-automation.json` (Workflows, then Import from File).
+2. Create credentials for WhatsApp Business Cloud API (trigger and send), Google Sheets OAuth2, Google Gemini, and a Header Auth credential named "Google Places API" using header `X-Goog-Api-Key`.
+3. Replace the placeholders `YOUR_GOOGLE_SHEET_ID` and `YOUR_WHATSAPP_PHONE_NUMBER_ID` with your own values.
+4. The sheet needs these columns: `#`, `Place Name`, `Category`, `Rating`, `Reviews`, `Price Range`, `Status`, `Visited?`, `Notes`, `City`, `Address`, `Cuisine`, `Type`, `Region`.
+5. Activate the workflow. If WhatsApp messages stop arriving after edits, unpublish and publish again so n8n re-registers the webhook.
+
+## Repository contents
+
+- `whatsapp-automation.json`: the n8n workflow export. Test data has been removed, and personal IDs are replaced with placeholders. Credentials are referenced by name only; no secrets are stored.
+- `README.md`: this file.
